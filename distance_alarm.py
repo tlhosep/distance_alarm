@@ -7,11 +7,13 @@ This app uses
 * Raspberry Pi Pico
 * HC-SR04-P to measure the distance
 * 1602 HD44780 2 line LCD display with I2C Bus
-* 12V LED to set an alarm
-* step down to 3.3 V
-* step down to 5.0 V
+* 12V LED to show an alarm
+* step down converter to 5.0 V
 * 12 V Battery
 * 10kOhm potentiometer
+* 1Resistor 2k2
+* 1Transistor NPN
+* 2Resistors 10k
 
 Info::
 
@@ -23,63 +25,83 @@ Code
 ^^^^
 """
 from time import sleep_ms
+import utime
 from machine import Pin, I2C, PWM, ADC
 from machine_i2c_lcd import I2cLcd
-import utime
-version = "0.1"
+
+VERSION = "0.3"
 alarm_led = PWM(Pin(0))
 alarm_led.freq(8) #8hz (min) at the beginning
 alarm_led.duty_u16(int(32767/4)) #12,5 % duty cycle
 trig = Pin(16, Pin.OUT)
 echo = Pin(17, Pin.IN)
 poti = ADC(0)
+temp = ADC(4)
 i2c = I2C(0, sda=Pin(20), scl=Pin(21), freq=100000)
 lcd = I2cLcd(i2c, 0x27, 2, 16)
 #start with version info
 lcd.backlight_on()
 trig.value(1)
-lcd.putstr("Distance-alarm"+"\n"+"Version: "+version)
+lcd.putstr("Distance-alarm"+"\n"+"Version: "+VERSION)
 sleep_ms(1000)
-
+show_temp=0
+TEMP_CONV = 3.3 / 65535
+ALARM_CONV= 330 / 65535
+no_measure=False
 while True:
     alarm_distance_raw=poti.read_u16()
-    alarm_distance_cm=10.0+(alarm_distance_raw/65535)*300
+    alarm_distance_cm=10.0+(alarm_distance_raw*ALARM_CONV)
     trig.value(0)
     utime.sleep_us(10)
     trig.value(1)
     utime.sleep_us(10)
     trig.value(0)
-    while echo.value()==0:
-        pass
-    tmr_start=utime.ticks_us()
-    while echo.value()==1:
-        pass
-    tmr_end=utime.ticks_us()
-    duration=utime.ticks_diff(tmr_end,tmr_start)
-    distance_cm=duration*0.0171
-    distance_diff_cm = distance_cm - alarm_distance_cm
-    if distance_diff_cm < 5.0:
+    fault_detection=1000
+    while echo.value()==0 and fault_detection > 0:
+        fault_detection-=1
+    no_measure=fault_detection<1
+    dist_diff_cm=200.0
+    if not no_measure:
+        tmr_start=utime.ticks_us()
+        while echo.value()==1:
+            pass
+        tmr_end=utime.ticks_us()
+        duration=utime.ticks_diff(tmr_end,tmr_start)
+        distance_cm=duration*0.0171
+        dist_diff_cm = distance_cm - alarm_distance_cm
+
+    if dist_diff_cm < 5.0:
         alarm_led.freq(1000) #full on
         alarm_led.duty_u16(65535)
-    elif distance_diff_cm < 15.0:
+    elif dist_diff_cm < 15.0:
         alarm_led.freq(30)
         alarm_led.duty_u16(32767)
-    elif distance_diff_cm < 20.0:
+    elif dist_diff_cm < 20.0:
         alarm_led.freq(22)
         alarm_led.duty_u16(32767)
-    elif distance_diff_cm < 50.0:
+    elif dist_diff_cm < 50.0:
         alarm_led.freq(18)
         alarm_led.duty_u16(32767)
-    elif distance_diff_cm < 100.0:
+    elif dist_diff_cm < 100.0:
         alarm_led.freq(12)
         alarm_led.duty_u16(32767)
     else:
         alarm_led.freq(8)
         alarm_led.duty_u16(32767)
-        
+
     lcd.clear()
-    msg1="Dist.: "+ str(distance_cm)[:6]+"cm"
-    msg2="Alarm: "+ str(alarm_distance_cm)[:6]+"cm"
-    lcd.putstr(msg1+"\n"+msg2)
+    if no_measure:
+        msg1="Error:No measure"
+    else:
+        msg1=f"Dist.: {distance_cm:6.2f} cm"
+    if show_temp > 2:
+        volt = temp.read_u16() * TEMP_CONV
+        room_temp=27-(volt-0.706)/0.001721
+        msg2=f"{room_temp:3.0f} C Temp"
+        show_temp=0
+    else:
+        msg2=f"Alarm: {alarm_distance_cm:6.2f} cm"
+    lcd.putstr(msg1+ "\n" +msg2)
+#    print(msg1+ "\n" +msg2)
     sleep_ms(1000)
-    
+    show_temp += 1
