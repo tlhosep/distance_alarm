@@ -25,7 +25,7 @@ The alarm in operation looks like this:
 
 <img src="pic/in_operation.jpg" width=200>
 
-The top LED fickers when the distance gets greater, the lower LED indicates "in operation". The housings sit on a 12V battery, you could definetly use a one with lower capacity (!). Left to the LEDs you see a motion detector to turn on the power, so not always power is consumed. On top of that a display shows the capacity of the battery.
+The top LED is dimmed when distance gets greater, the lower LED indicates "in operation". The housings sit on a 12V battery, you could definetly use a one with lower capacity (!). Left to the LEDs you see a motion detector to turn on the power, so not always power is consumed. On top of that a display shows the capacity of the battery.
 
 The distance sensor could be found on the lower end, fixed by tape on the IKEA shelf :) 
 

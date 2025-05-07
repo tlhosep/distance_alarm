@@ -29,10 +29,10 @@ import utime
 from machine import Pin, I2C, PWM, ADC
 from machine_i2c_lcd import I2cLcd
 
-VERSION = "1.0"
+VERSION = "1.1"
 alarm_led = PWM(Pin(0))
-alarm_led.freq(8) #8hz (min) at the beginning
-alarm_led.duty_u16(int(32767/4)) #12,5 % duty cycle
+alarm_led.freq(10000) #1000hz
+alarm_led.duty_u16(32767>>6) #dark
 trig = Pin(16, Pin.OUT)
 echo = Pin(17, Pin.IN)
 poti = ADC(0)
@@ -93,20 +93,20 @@ while True:
         alarm_led.freq(1000) #full on
         alarm_led.duty_u16(65535)
     elif dist_diff_cm < 15.0:
-        alarm_led.freq(30)
+        alarm_led.freq(1000)
         alarm_led.duty_u16(32767)
     elif dist_diff_cm < 20.0:
-        alarm_led.freq(22)
-        alarm_led.duty_u16(32767)
+        alarm_led.freq(1000)
+        alarm_led.duty_u16(32767>>2)
     elif dist_diff_cm < 50.0:
-        alarm_led.freq(18)
-        alarm_led.duty_u16(32767)
+        alarm_led.freq(1000)
+        alarm_led.duty_u16(32767>>4)
     elif dist_diff_cm < 100.0:
-        alarm_led.freq(12)
-        alarm_led.duty_u16(32767)
+        alarm_led.freq(1000)
+        alarm_led.duty_u16(32767>>5)
     else:
-        alarm_led.freq(8)
-        alarm_led.duty_u16(32767)
+        alarm_led.freq(1000)
+        alarm_led.duty_u16(32767>>6)
 
     lcd.clear()
     if no_measure:
