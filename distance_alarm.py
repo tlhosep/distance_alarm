@@ -29,7 +29,7 @@ import utime
 from machine import Pin, I2C, PWM, ADC
 from machine_i2c_lcd import I2cLcd
 
-VERSION = "1.1"
+VERSION = "1.2"
 alarm_led = PWM(Pin(0))
 alarm_led.freq(10000) #1000hz
 alarm_led.duty_u16(32767>>6) #dark
@@ -60,6 +60,7 @@ def calc_bar(alarm_dif:float, interval:float)->str:
         str: created bar-str up to 16char
     """
     steps=16-int(alarm_dif/interval)
+#    print(f"steps:{steps:d} dif={alarm_dif:3.0f}")
     steps=min(16,steps)
     steps=max(1,steps)
     bar=""
@@ -112,7 +113,7 @@ while True:
     if no_measure:
         msg1="Error:No measure"
     else:
-        msg1=f"Dist.: {distance_cm:6.2f} cm"
+        msg1=f"Distance: {distance_cm:3.0f} cm"
     if show_temp >3:
         volt = temp.read_u16() * TEMP_CONV
         room_temp=27-(volt-0.706)/0.001721
@@ -121,7 +122,7 @@ while True:
     elif show_temp == 2:
         msg2=f"Alarm = {alarm_distance_cm:3.0f} cm"
     else:
-        msg2=calc_bar(dist_diff_cm,20.0)
+        msg2=calc_bar(dist_diff_cm,5.0)
     lcd.putstr(msg1+ "\n" +msg2)
     sleep_ms(1000)
     show_temp += 1
